@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deriv Bots Hub - Kisumu</title>
+<style>
+body{font-family:Arial;background:#0e0e0e;color:white;margin:0;padding:15px}
+.bot-card{background:#1a1a1a;border-radius:12px;padding:15px;margin:10px 0;border:1px solid #333}
+.bot-card h3{margin:0;color:#ff444f}
+.btn{background:#ff444f;color:white;border:none;padding:10px 20px;border-radius:8px;width:100%;margin-top:10px;font-weight:bold}
+input,select{width:100%;padding:10px;margin:5px 0;background:#222;color:white;border:1px solid #444;border-radius:6px}
+</style>
+</head>
+<body>
+<h2>🤖 Deriv Bots Hub</h2>
+<p>Connect Deriv token to start. Get token: deriv.com > Account Settings > API Token > Create</p>
+<input id="token" placeholder="Paste your Deriv API token here">
+
+<div id="bots"></div>
+
+<script>
+const BOTS = [
+ {id:'over3', name:'Digit OVER 3 Bot', desc:'Trades Over 3 with Martingale', type:'digits'},
+ {id:'under7', name:'Digit UNDER 7 Bot', desc:'Trades Under 7 - safe low stake', type:'digits'},
+ {id:'even', name:'Even Digit Bot', desc:'Even digits only', type:'digits'},
+ {id:'odd', name:'Odd Digit Bot', desc:'Odd digits only', type:'digits'},
+ {id:'risefall', name:'Rise/Fall 1 Tick Bot', desc:'Rise/Fall with analysis', type:'risefall'},
+ {id:'accumulator', name:'Accumulator Bot', desc:'Small profit accumulator', type:'acc'},
+];
+
+const botsDiv = document.getElementById('bots');
+BOTS.forEach(b => {
+ botsDiv.innerHTML += `
+ <div class="bot-card">
+ <h3>${b.name}</h3>
+ <p>${b.desc}</p>
+ <select id="stake-${b.id}"><option>Stake: 0.35</option><option>0.5</option><option>1</option></select>
+ <button class="btn" onclick="runBot('${b.id}')">START ${b.name}</button>
+ <div id="log-${b.id}" style="font-size:12px;margin-top:8px;color:#0f0"></div>
+ </div>`;
+});
+
+let ws;
+function runBot(id){
+ const token = document.getElementById('token').value;
+ if(!token){alert('Paste Deriv token first');return;}
+ ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
+ ws.onopen = ()=> ws.send(JSON.stringify({authorize: token}));
+ ws.onmessage = (msg)=>{
+  const data = JSON.parse(msg.data);
+  document.getElementById(`log-${id}`).innerHTML = JSON.stringify(data).substring(0,200);
+  // Here add your bot logic - example for digits:
+  if(data.msg_type==='authorize'){
+    ws.send(JSON.stringify({ticks: "R_100"})); // subscribe to Volatility 100
+  }
+  if(data.tick){
+    // SIMPLE LOGIC: if last digit >3 buy Over etc
+    let lastDigit = data.tick.quote.toString().slice(-1);
+    // you customize per bot id
+    console.log(id, lastDigit);
+  }
+ };
+}
+</script>
+</body>
+</html>
